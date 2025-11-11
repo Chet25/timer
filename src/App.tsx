@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Play, Pause, RotateCcw } from 'lucide-react';
+import { Play, Pause, RotateCcw, Calendar, Flame } from 'lucide-react';
+import { useWorkoutStorage } from './hooks/useWorkoutStorage';
+import { ProgressCalendar } from './components/ProgressCalendar';
 
 function App() {
   const [sessionTime, setSessionTime] = useState(40);
@@ -10,7 +12,9 @@ function App() {
   const [isBreak, setIsBreak] = useState(false);
   const [timeLeft, setTimeLeft] = useState(40);
   const [completedSets, setCompletedSets] = useState(0);
+  const [showCalendar, setShowCalendar] = useState(false);
   const intervalRef = useRef<number | null>(null);
+  const { workoutHistory, addWorkout, getTodayStats, getStreak, isLoaded } = useWorkoutStorage();
 
   useEffect(() => {
     if (isRunning) {
@@ -20,7 +24,11 @@ function App() {
             if (isBreak) {
               if (currentIteration >= iterations) {
                 setIsRunning(false);
-                setCompletedSets((c) => c + 1);
+                setCompletedSets((c) => {
+                  const newCount = c + 1;
+                  addWorkout(newCount);
+                  return newCount;
+                });
                 setCurrentIteration(1);
                 setIsBreak(false);
                 return sessionTime;
@@ -31,7 +39,11 @@ function App() {
               }
             } else {
               if (currentIteration === iterations) {
-                setCompletedSets((c) => c + 1);
+                setCompletedSets((c) => {
+                  const newCount = c + 1;
+                  addWorkout(newCount);
+                  return newCount;
+                });
                 setCurrentIteration(1);
                 setIsBreak(false);
                 setIsRunning(false);
@@ -79,9 +91,15 @@ function App() {
     ? ((breakTime - timeLeft) / breakTime) * 100
     : ((sessionTime - timeLeft) / sessionTime) * 100;
 
+  const todayStats = getTodayStats();
+  const streak = getStreak();
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 p-4">
+      <div className="max-w-6xl mx-auto">
+        <div className="flex flex-col lg:flex-row gap-8">
+          <div className="w-full lg:flex-1 flex items-center justify-center">
+            <div className="w-full max-w-md">
         <div className="bg-white/10 backdrop-blur-lg rounded-3xl shadow-2xl p-8 border border-white/20">
           <h1 className="text-4xl font-bold text-white text-center mb-8">
             Interval Timer
@@ -189,6 +207,20 @@ function App() {
                 </div>
               </div>
             )}
+
+            <div className="grid grid-cols-2 gap-4 mb-8">
+              <div className="bg-white/10 border border-white/20 rounded-xl p-4 text-center">
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <Flame size={18} className="text-orange-400" />
+                  <span className="text-2xl font-bold text-white">{streak}</span>
+                </div>
+                <div className="text-xs text-white/60 uppercase tracking-wider">Day Streak</div>
+              </div>
+              <div className="bg-white/10 border border-white/20 rounded-xl p-4 text-center">
+                <div className="text-2xl font-bold text-emerald-400 mb-2">{todayStats.completedSets}</div>
+                <div className="text-xs text-white/60 uppercase tracking-wider">Today's Sets</div>
+              </div>
+            </div>
           </div>
 
           <div className="flex gap-3">
@@ -216,6 +248,24 @@ function App() {
               <RotateCcw size={20} />
             </button>
           </div>
+            </div>
+          </div>
+          </div>
+
+          {isLoaded && (
+            <div className="w-full lg:flex-1">
+              <div className="sticky top-4">
+                <button
+                  onClick={() => setShowCalendar(!showCalendar)}
+                  className="w-full mb-4 bg-white/10 hover:bg-white/20 text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 border border-white/20"
+                >
+                  <Calendar size={20} />
+                  {showCalendar ? 'Hide' : 'Show'} Progress
+                </button>
+                {showCalendar && <ProgressCalendar workoutHistory={workoutHistory} />}
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
